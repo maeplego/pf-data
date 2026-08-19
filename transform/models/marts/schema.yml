@@ -1,0 +1,40 @@
+version: 2
+
+models:
+  - name: dim_product
+    columns:
+      - name: product_id
+        tests: [not_null, unique]
+  - name: dim_date
+    columns:
+      - name: date_day
+        tests: [not_null, unique]
+  - name: fct_order_items
+    columns:
+      - name: order_id
+        tests: [not_null]
+      - name: product_id
+        tests: [not_null]
+      - name: line_revenue_yen
+        tests: [not_null]
+    tests:
+      - unique:
+          column_name: "order_id || '-' || product_id"
+  - name: daily_sales
+    description: One row per sale_date. Integer yen only.
+    columns:
+      - name: sale_date
+        tests: [not_null, unique]
+      - name: order_count
+        tests: [not_null]
+      - name: item_count
+        tests: [not_null]
+      - name: revenue_yen
+        tests: [not_null]
+  - name: sales_by_product
+    description: One row per product_id. Integer yen only.
+    columns:
+      - name: product_id
+        tests: [not_null, unique]
+      - name: revenue_yen
+        tests: [not_null]

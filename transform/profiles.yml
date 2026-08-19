@@ -1,0 +1,12 @@
+pf_data:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: "{{ env_var('PGHOST', '127.0.0.1') }}"
+      user: "{{ env_var('PGUSER', 'data') }}"
+      password: "{{ env_var('PGPASSWORD', 'data') }}"
+      port: "{{ env_var('PGPORT', '5413') | int }}"
+      dbname: "{{ env_var('PGDATABASE', 'data') }}"
+      schema: analytics
+      threads: 2

@@ -1,0 +1,9 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    description: Fictional CSV loaded from MinIO. Not a live P06/P10 extract.
+    tables:
+      - name: order_lines
+      - name: products
