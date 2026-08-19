@@ -1,0 +1,44 @@
+[project]
+name = "pf-data"
+version = "0.1.0"
+description = "P13 fictional-CSV sales pipeline (MinIO → Postgres → dbt). Not a live P06/P10 warehouse."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "python-ulid>=2.2",
+]
+
+[project.optional-dependencies]
+pipeline = [
+  "dbt-core>=1.8,<1.11",
+  "dbt-postgres>=1.8,<1.11",
+  "dagster>=1.9,<1.12",
+  "dagster-webserver>=1.9,<1.12",
+  "minio>=7.2",
+  "psycopg[binary]>=3.2",
+]
+dev = [
+  "duckdb>=1.1",
+  "pytest>=8.3",
+]
+
+[project.scripts]
+pf-data-pipeline = "pf_data_ingest.cli:main"
+
+[build-system]
+requires = ["setuptools>=70"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = [
+  "ingest/src",
+  "orchestrate/src",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [
+  "ingest/src",
+  "orchestrate/src",
+]
+addopts = "-q"

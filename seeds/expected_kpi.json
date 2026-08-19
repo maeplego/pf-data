@@ -1,0 +1,13 @@
+{
+  "daily_sales": [
+    {"sale_date": "2026-08-01", "order_count": 3, "item_count": 6, "revenue_yen": 11500},
+    {"sale_date": "2026-08-02", "order_count": 2, "item_count": 3, "revenue_yen": 7100},
+    {"sale_date": "2026-08-03", "order_count": 2, "item_count": 3, "revenue_yen": 6200}
+  ],
+  "sales_by_product": [
+    {"product_id": "P001", "product_name": "Cedar Desk Lamp", "category": "home", "order_count": 3, "quantity": 4, "revenue_yen": 14000},
+    {"product_id": "P002", "product_name": "Canvas Tote", "category": "accessories", "order_count": 3, "quantity": 4, "revenue_yen": 7200},
+    {"product_id": "P003", "product_name": "Notebook Set", "category": "stationery", "order_count": 2, "quantity": 4, "revenue_yen": 3600}
+  ],
+  "total_revenue_yen": 24800
+}

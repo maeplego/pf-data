@@ -1,0 +1,9 @@
+order_id,order_date,product_id,quantity,unit_price_yen,channel
+ORD-001,2026-08-01,P001,2,3500,web
+ORD-002,2026-08-01,P002,1,1800,web
+ORD-003,2026-08-01,P003,3,900,store
+ORD-004,2026-08-02,P001,1,3500,web
+ORD-005,2026-08-02,P002,2,1800,store
+ORD-006,2026-08-03,P003,1,900,web
+ORD-007,2026-08-03,P001,1,3500,store
+ORD-007,2026-08-03,P002,1,1800,store

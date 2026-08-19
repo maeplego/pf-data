@@ -1,0 +1,4 @@
+order_id,order_date,product_id,quantity,unit_price_yen,channel
+ORD-BAD,2026-08-04,P001,-1,3500,web
+ORD-BAD2,not-a-date,P002,1,1800,web
+ORD-BAD3,2026-08-04,P003,1,-50,store
