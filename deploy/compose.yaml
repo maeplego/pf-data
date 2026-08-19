@@ -61,6 +61,19 @@ services:
         condition: service_healthy
     restart: "no"
 
+  metabase:
+    image: metabase/metabase:v0.53.6
+    profiles: ["bi"]
+    ports:
+      - "3313:3000"
+    environment:
+      MB_JETTY_HOST: 0.0.0.0
+    volumes:
+      - data-metabase:/metabase-data
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   dagster:
     build:
       context: ..
@@ -105,3 +118,4 @@ services:
 volumes:
   data-pg:
   data-minio:
+  data-metabase:

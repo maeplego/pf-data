@@ -12,9 +12,9 @@ If volume grows past a laptop Postgres, consider Spark then; it is not used here
 | `ingest/` | MinIO extract, CSV quality gate, Postgres `raw` load, `ops.job_runs` |
 | `transform/` | dbt-core: staging views, `marts.daily_sales`, `marts.sales_by_product` |
 | `orchestrate/` | Dagster job `fictional_csv_sales` (extract → validate → load → dbt) |
-| `deploy/` | Compose: Postgres + MinIO + one-shot pipeline + Dagster UI |
+| `bi/` | Optional Metabase profile + mart KPI SQL |
 
-BI / Metabase is **not** in this slice. Marts are the contract (`marts` schema only).
+BI / Metabase is **optional** (`docker compose --profile bi`). The smallest path is `bi/dashboards/marts_kpis.sql` against `marts`. P06 export is not wired.
 
 ## Compose demo
 
@@ -30,6 +30,7 @@ docker compose --env-file .env up --build
 | http://localhost:9113 | MinIO console (`pfdata` / `pfdata-dev-not-for-prod`) |
 | localhost:5413 | Postgres (`data` / `data`, database `data`) |
 | localhost:9013 | MinIO S3 API |
+| http://localhost:3313 | Metabase（`--profile bi` のときだけ） |
 
 The `pipeline` service uploads the fictional CSV to MinIO, validates, loads `raw`, then `dbt build` (staging tests **before** marts). Re-running the same seed truncates `raw` first, so KPIs do not double.
 
@@ -76,7 +77,7 @@ This slice is a full refresh of the fictional files. To “backfill”, put the 
 
 ## Limits
 
-- No Metabase dashboards, no Great Expectations, no P06/P10 source
+- Metabase is opt-in (`--profile bi`); P06/P10 source connectors are not wired
 - Table-swap on **dbt mart test** failure is not implemented; the CSV gate is what keeps yesterday’s marts
 - Spark / CDC / real PII sources are non-goals
 

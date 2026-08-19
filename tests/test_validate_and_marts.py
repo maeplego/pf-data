@@ -155,3 +155,15 @@ def test_reload_same_seed_does_not_duplicate():
     # Warehouse truncate+insert is the idempotent path; grain uniqueness is the guard.
     keys = {(line.order_id, line.product_id) for line in lines}
     assert len(keys) == len(lines)
+
+
+def test_dashboard_sql_documents_seed_kpis(expected_kpi: dict):
+    sql = (ROOT / "bi" / "dashboards" / "marts_kpis.sql").read_text(encoding="utf-8")
+    assert "from marts.daily_sales" in sql
+    assert "from marts.sales_by_product" in sql
+    assert "from ops.job_runs" in sql
+    assert "from raw." not in sql.lower()
+    for row in expected_kpi["daily_sales"]:
+        assert str(row["revenue_yen"]) in sql
+    assert str(expected_kpi["total_revenue_yen"]) in sql
+
