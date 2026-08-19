@@ -1,22 +1,16 @@
 # pf-data
 
-P13 data-platform. **Learning project — not a production DWH and not a live pipeline from P06 commerce or P10 talent.** The first DAG reads a **fictional** store-sales CSV. P06 `orders_YYYY-MM-DD.json` and P10 aggregate exports are not wired.
+学習用の ETL です。最初のパイプラインは **架空の店舗売上 CSV** を MinIO へ載せ、品質チェック、Postgres `raw`、dbt の marts まで通します。コマースや求人の本番エクスポートは接続していません。**本番 DWH の置き換えではありません。**
 
-If volume grows past a laptop Postgres, consider Spark then; it is not used here.
-
-## Layout
-
-| Path | Role |
+| ディレクトリ | 役割 |
 | --- | --- |
-| `seeds/` | Fictional `orders.csv` / `products.csv`, broken CSV, expected KPI |
-| `ingest/` | MinIO extract, CSV quality gate, Postgres `raw` load, `ops.job_runs` |
-| `transform/` | dbt-core: staging views, `marts.daily_sales`, `marts.sales_by_product` |
-| `orchestrate/` | Dagster job `fictional_csv_sales` (extract → validate → load → dbt) |
-| `bi/` | Optional Metabase profile + mart KPI SQL |
+| `seeds/` | 架空 CSV と期待 KPI |
+| `ingest/` | 抽出、品質ゲート、raw 投入 |
+| `transform/` | dbt（staging と marts） |
+| `orchestrate/` | Dagster ジョブ |
+| `bi/` | 任意の Metabase と KPI SQL |
 
-BI / Metabase is **optional** (`docker compose --profile bi`). The smallest path is `bi/dashboards/marts_kpis.sql` against `marts`. P06 export is not wired.
-
-## Compose demo
+## 起動
 
 ```powershell
 cd deploy
@@ -24,61 +18,30 @@ copy .env.example .env
 docker compose --env-file .env up --build
 ```
 
-| URL | Role |
+| URL | 用途 |
 | --- | --- |
-| http://localhost:3013 | Dagster UI (job graph after the first pipeline exit 0) |
-| http://localhost:9113 | MinIO console (`pfdata` / `pfdata-dev-not-for-prod`) |
-| localhost:5413 | Postgres (`data` / `data`, database `data`) |
-| localhost:9013 | MinIO S3 API |
-| http://localhost:3313 | Metabase（`--profile bi` のときだけ） |
+| http://localhost:3013 | Dagster |
+| http://localhost:9113 | MinIO コンソール（`pfdata` / `.env` のパスワード） |
+| localhost:5413 | Postgres（`data` / `data`、DB `data`） |
 
-The `pipeline` service uploads the fictional CSV to MinIO, validates, loads `raw`, then `dbt build` (staging tests **before** marts). Re-running the same seed truncates `raw` first, so KPIs do not double.
+同じシードを再実行すると `raw` を truncate してから載せるので、KPI は二重になりません。期待値は `seeds/expected_kpi.json` です（例: 2026-08-01 は注文 3、点数 6、売上 11500 円）。
 
-Expected seed KPI (also `seeds/expected_kpi.json`):
-
-| sale_date | orders | items | revenue_yen |
-| --- | --- | --- | --- |
-| 2026-08-01 | 3 | 6 | 11500 |
-| 2026-08-02 | 2 | 3 | 7100 |
-| 2026-08-03 | 2 | 3 | 6200 |
-
-Product totals: P001 14000, P002 7200, P003 3600 (24800 yen).
-
-```sql
-select * from marts.daily_sales order by sale_date;
-select * from marts.sales_by_product order by product_id;
-select run_id, status, row_count, failure_reason from ops.job_runs;
-```
-
-### Broken CSV (marts stay on the last good run)
-
-After a successful `up`, in another shell:
+壊れた CSV を流すと品質ゲートで止まり、昨日の marts は残ります。
 
 ```powershell
 cd deploy
-$env:PIPELINE_SOURCE="broken"
 docker compose --env-file .env run --rm -e PIPELINE_SOURCE=broken pipeline
 ```
 
-Validate fails (negative quantity/price, bad date). Staging/marts are not loaded. `ops.job_runs` gets `status=failed` and a reason.
+Metabase は任意です（`docker compose --profile bi`）。最小経路は `bi/dashboards/marts_kpis.sql` を marts に対して実行することです。
 
-## Tests (host, no Docker)
+## テスト
 
 ```powershell
 python -m pip install -e ".[dev]"
 python -m pytest
 ```
 
-Covers CSV rules, integer yen, the mart grain (Python + DuckDB SQL matching `transform/manual/mart_shape.sql`). dbt tests run inside Compose/`dbt build`.
+Spark、CDC、実在 PII ソースは非目標です。
 
-## Backfill
-
-This slice is a full refresh of the fictional files. To “backfill”, put the desired CSV in `seeds/`, `docker compose run --rm pipeline`. Date-partitioned P06 objects are a later connector.
-
-## Limits
-
-- Metabase is opt-in (`--profile bi`); P06/P10 source connectors are not wired
-- Table-swap on **dbt mart test** failure is not implemented; the CSV gate is what keeps yesterday’s marts
-- Spark / CDC / real PII sources are non-goals
-
-Design: `project/portfolio-plan/data-platform/DESIGN.md` and `docs/`.
+設計の詳細は [portfolio-plan](https://github.com/maeplego/portfolio-plan) の `portfolio-plan/data-platform/docs/` です。

@@ -1,5 +1,5 @@
-# Fictional seeds
+# 架空シード
 
-These CSVs are invented store sales. They are **not** exports from P06 commerce or P10 talent.
+創作した店舗売上です。コマースや求人のエクスポートではありません。
 
-`orders.csv` + `products.csv` are the happy-path lake objects. `broken_orders.csv` is only for the quality-gate demo (negative quantity / price, unparseable date). `expected_kpi.json` is the mart grain we check in pytest and after a successful `dbt build`.
+`orders.csv` と `products.csv` が正常系です。`broken_orders.csv` は品質ゲート用（負の数量・価格、壊れた日付）です。`expected_kpi.json` は pytest と `dbt build` 成功後に照合する mart の粒度です。
