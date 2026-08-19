@@ -40,10 +40,10 @@ jobs:
           severity: HIGH,CRITICAL
           exit-code: "1"
           ignore-unfixed: true
+          trivyignores: .trivyignore
   compose-config:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: validate Compose file without starting containers
         run: docker compose -f deploy/compose.yaml config
-
