@@ -1,0 +1,4 @@
+telemetry:
+  enabled: false
+nux:
+  enabled: false

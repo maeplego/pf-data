@@ -1,0 +1,107 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-data}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-data}
+      POSTGRES_DB: ${POSTGRES_DB:-data}
+    ports:
+      - "5413:5432"
+    volumes:
+      - data-pg:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-data} -d ${POSTGRES_DB:-data}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-pfdata}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-pfdata-dev-not-for-prod}
+    ports:
+      - "9013:9000"
+      - "9113:9001"
+    volumes:
+      - data-minio:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+
+  pipeline:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    environment:
+      PF_DATA_ROOT: /app
+      DATABASE_URL: postgresql://${POSTGRES_USER:-data}:${POSTGRES_PASSWORD:-data}@postgres:5432/${POSTGRES_DB:-data}
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGUSER: ${POSTGRES_USER:-data}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-data}
+      PGDATABASE: ${POSTGRES_DB:-data}
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-pfdata}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-pfdata-dev-not-for-prod}
+      MINIO_BUCKET: ${MINIO_BUCKET:-raw-sales}
+      MINIO_SECURE: "false"
+      PIPELINE_SOURCE: ${PIPELINE_SOURCE:-good}
+      DBT_PROJECT_DIR: /app/transform
+      DBT_PROFILES_DIR: /app/transform
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    restart: "no"
+
+  dagster:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    command:
+      [
+        "dagster-webserver",
+        "-h",
+        "0.0.0.0",
+        "-p",
+        "3000",
+        "-w",
+        "/app/orchestrate/workspace.yaml",
+      ]
+    environment:
+      PF_DATA_ROOT: /app
+      DATABASE_URL: postgresql://${POSTGRES_USER:-data}:${POSTGRES_PASSWORD:-data}@postgres:5432/${POSTGRES_DB:-data}
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGUSER: ${POSTGRES_USER:-data}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-data}
+      PGDATABASE: ${POSTGRES_DB:-data}
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-pfdata}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-pfdata-dev-not-for-prod}
+      MINIO_BUCKET: ${MINIO_BUCKET:-raw-sales}
+      MINIO_SECURE: "false"
+      PIPELINE_SOURCE: ${PIPELINE_SOURCE:-good}
+      DBT_PROJECT_DIR: /app/transform
+      DBT_PROFILES_DIR: /app/transform
+      DAGSTER_HOME: /opt/dagster/dagster_home
+    ports:
+      - "3013:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      pipeline:
+        condition: service_completed_successfully
+
+volumes:
+  data-pg:
+  data-minio:
