@@ -80,4 +80,4 @@ This slice is a full refresh of the fictional files. To “backfill”, put the 
 - Table-swap on **dbt mart test** failure is not implemented; the CSV gate is what keeps yesterday’s marts
 - Spark / CDC / real PII sources are non-goals
 
-Design: `project/portfolio-plan/data-platform/DESIGN.md`
+Design: `project/portfolio-plan/data-platform/DESIGN.md` and `docs/`.
