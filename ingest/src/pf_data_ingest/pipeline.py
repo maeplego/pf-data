@@ -8,6 +8,7 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
+from pf_data_ingest.commerce_export import fetch_orders_csv
 from pf_data_ingest.minio_io import MinioSettings, extract_to_dir, seed_fictional_csv
 from pf_data_ingest.validate import ValidationError, validate_extract_dir
 from pf_data_ingest.warehouse import (
@@ -30,6 +31,8 @@ def _orders_seed_name() -> str:
     mode = os.environ.get("PIPELINE_SOURCE", "good").strip().lower()
     if mode == "broken":
         return "broken_orders.csv"
+    if mode == "commerce":
+        return "orders.csv"
     return "orders.csv"
 
 
@@ -80,7 +83,18 @@ def run(*, skip_seed: bool = False) -> PipelineResult:
     run_id = start_job_run(job_name="fictional_csv_sales", source_object=object_name)
     try:
         if not skip_seed:
-            seed_fictional_csv(repo_root() / "seeds", orders_name=source, settings=settings)
+            if os.environ.get("PIPELINE_SOURCE", "good").strip().lower() == "commerce":
+                with tempfile.TemporaryDirectory(prefix="pf-data-commerce-") as tmp:
+                    orders_path = Path(tmp) / "orders.csv"
+                    fetch_orders_csv(orders_path)
+                    seed_fictional_csv(
+                        repo_root() / "seeds",
+                        orders_name=orders_path.name,
+                        settings=settings,
+                        orders_override=orders_path,
+                    )
+            else:
+                seed_fictional_csv(repo_root() / "seeds", orders_name=source, settings=settings)
         with tempfile.TemporaryDirectory(prefix="pf-data-extract-") as tmp:
             extract_dir = extract_to_dir(Path(tmp), settings)
             report = validate_extract_dir(extract_dir)

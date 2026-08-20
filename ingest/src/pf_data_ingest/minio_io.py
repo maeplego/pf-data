@@ -59,13 +59,14 @@ def seed_fictional_csv(
     *,
     orders_name: str = "orders.csv",
     settings: MinioSettings | None = None,
+    orders_override: Path | None = None,
 ) -> None:
     """Upload the local fictional files into the lake. Not a P06/P10 pull."""
     settings = settings or MinioSettings.from_env()
     ensure_bucket(settings)
     api = client(settings)
     products = seeds_dir / "products.csv"
-    orders = seeds_dir / orders_name
+    orders = orders_override if orders_override is not None else seeds_dir / orders_name
     if not products.is_file() or not orders.is_file():
         raise FileNotFoundError(f"missing seed CSV under {seeds_dir}")
     api.fput_object(settings.bucket, f"{settings.prefix}/products.csv", str(products))
