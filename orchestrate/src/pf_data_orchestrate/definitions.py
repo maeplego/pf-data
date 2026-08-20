@@ -1,10 +1,13 @@
-"""Dagster graph: extract → validate → staging → dbt. Fictional CSV only."""
+"""Dagster graph: extract → validate → staging → dbt. Fictional CSV or P06 export."""
 
 from pathlib import Path
 from typing import NamedTuple
+import os
+import tempfile
 
 from dagster import Definitions, Failure, job, op
 
+from pf_data_ingest.commerce_export import fetch_orders_csv
 from pf_data_ingest.minio_io import MinioSettings, extract_to_dir, seed_fictional_csv
 from pf_data_ingest.pipeline import _orders_seed_name, run_dbt_build
 from pf_data_ingest.validate import validate_extract_dir
@@ -28,6 +31,21 @@ class Loaded(NamedTuple):
     row_count: int
 
 
+def _seed_orders(settings: MinioSettings, orders_name: str) -> None:
+    if os.environ.get("PIPELINE_SOURCE", "good").strip().lower() == "commerce":
+        with tempfile.TemporaryDirectory(prefix="pf-data-commerce-") as tmp:
+            orders_path = Path(tmp) / "orders.csv"
+            fetch_orders_csv(orders_path)
+            seed_fictional_csv(
+                repo_root() / "seeds",
+                orders_name=orders_path.name,
+                settings=settings,
+                orders_override=orders_path,
+            )
+        return
+    seed_fictional_csv(repo_root() / "seeds", orders_name=orders_name, settings=settings)
+
+
 @op
 def extract_fictional_csv(context) -> Extracted:
     settings = MinioSettings.from_env()
@@ -36,11 +54,7 @@ def extract_fictional_csv(context) -> Extracted:
         source_object=f"{settings.prefix}/orders.csv",
     )
     try:
-        seed_fictional_csv(
-            repo_root() / "seeds",
-            orders_name=_orders_seed_name(),
-            settings=settings,
-        )
+        _seed_orders(settings, _orders_seed_name())
         dest = repo_root() / "transform" / "target" / "extract"
         extract_to_dir(dest, settings)
         context.log.info("extracted s3://%s/%s", settings.bucket, settings.prefix)
@@ -83,7 +97,7 @@ def transform_dbt(context, loaded: Loaded) -> int:
     return loaded.row_count
 
 
-@job(description="Fictional sales CSV → MinIO → Postgres staging → dbt marts. Not P06/P10.")
+@job(description="Fictional sales CSV or P06 export → MinIO → Postgres staging → dbt marts.")
 def fictional_csv_sales():
     transform_dbt(load_staging(validate_csv(extract_fictional_csv())))
 
