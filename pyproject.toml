@@ -1,7 +1,7 @@
 [project]
 name = "pf-data"
 version = "0.1.0"
-description = "P13 fictional-CSV sales pipeline (MinIO → Postgres → dbt). Not a live P06/P10 warehouse."
+description = "P13 sales pipeline (MinIO → Postgres → dbt). Default source is fictional CSV; optional P06 commerce export via PIPELINE_SOURCE=commerce."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
